@@ -99,7 +99,66 @@ def ray_sphere_intersection(ray, sphere):
     -----
         a, b を３次元ベクトルとしたとき、ベクトルの内積は np.dot(a, b) で計算できる。
     '''
-    return -1
+
+    # 使用するクラスの定義
+    class SolutionAndCount:
+            def __init__(self,solution_count, solutions):
+                self.solution_count = solution_count
+                self.solutions = solutions
+
+    # 使用する関数の定義
+    def solve_quadratic(a: float, b: float, c: float):
+        discriminant = b**2 - 4*a*c
+
+        if discriminant < 0:
+            return SolutionAndCount(0, [])
+
+        elif discriminant == 0:
+            x = -b / (2 * a)
+            return SolutionAndCount(1, [x])
+
+        else:
+            sqrt_discriminant = np.sqrt(discriminant)
+            x1 = (-b + sqrt_discriminant) / (2 * a)
+            x2 = (-b - sqrt_discriminant) / (2 * a)
+            return SolutionAndCount(2, [x1, x2])
+
+    def choose_distance_from_solution(solution: SolutionAndCount):
+        solution_count = solution.solution_count
+        solutions = solution.solutions
+
+        if solution_count == 0:
+            return -1
+
+        elif solution_count == 1:
+            if solutions[0] > 0:
+                return solutions[0]
+            else:
+                return -1
+
+        else:
+            x1 = solutions[0]
+            x2 = solutions[1]
+            if x1 > 0:
+                if x2 > 0:
+                    return min(x1, x2)
+                else:
+                    return x1
+            elif x2 > 0:
+                return x2
+            return -1
+
+    # 二次方程式の係数を算出
+    p0_c = (ray.p0 - sphere.center)
+    a = np.dot(ray.direction, ray.direction)
+    b = 2 * np.dot(ray.direction, p0_c)
+    c = (np.dot(p0_c, p0_c)) - (sphere.radius * sphere.radius)
+
+    # 係数・関数を用いて距離を算出
+    solution = solve_quadratic(a, b, c)
+    t = choose_distance_from_solution(solution)
+
+    return t
 
 
 def ray_triangle_intersection(ray, triangle):
