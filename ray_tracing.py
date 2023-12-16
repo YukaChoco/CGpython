@@ -72,7 +72,10 @@ def ray_casting(i, j, fov, pixels):
     カメラはピンホールカメラで、画像の中心をカメラの光軸が貫くものとする。また、世界座標系とカメラ座標系は同一とする。
 	すなわち、画像平面は XY 平面と平行であり、カメラの視線方向は +Z 軸方向である。
     '''
-    return Ray(0, (0, 0, 1))
+
+    z = pixels / (2 * np.tan(fov / 2))
+    direction = np.array([i - pixels/2, j- pixels/2, z])
+    return Ray(0, direction)
 
 
 
