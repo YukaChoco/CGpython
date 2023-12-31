@@ -239,8 +239,18 @@ def find_color(ray, lights, obj, depth):
             光源の色は、light.color, 光源が点p に届いた時の光の減衰は light.attenuation(p) で計算できる。 light は 引数 lights の i 番目の光源である。
             右目と左目の色はサンプルと入れ替わっていてもよい （これは、右手系・左手系が未定義なことにより、どちらの座標系で計算しているかによって左右反転が起きるからである）。
         '''
-        
-        return np.ones(3) # White
+
+        position = ray.p0 + depth * ray.direction # 衝突点の座標
+        normal =  (position - obj.center) / obj.radius # 法線方向
+        viewing = -1. * ray.direction # 視線方向
+        color = np.zeros(3) # 色を黒で初期化
+    
+        for light in lights:
+            light_direction = light.direction(position) # 光源方向
+            color += obj.brdf.reflectance(light_direction, viewing, normal) * light.attenuation(position) * light.color
+
+        return color
+
     if isinstance(obj, Triangle):
         # 3角形の色を計算
         p = ray.p0 + depth * ray.direction
