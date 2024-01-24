@@ -205,7 +205,7 @@ def find_intersect(ray, scene):
 
 
 
-def find_color(ray, lights, obj, depth):
+def find_color(ray, lights, obj, depth, scene):
     if obj is None:
         return np.zeros(3) # Black
     ''' 
@@ -247,7 +247,12 @@ def find_color(ray, lights, obj, depth):
     
         for light in lights:
             light_direction = light.direction(position) # 光源方向
-            color += obj.brdf.reflectance(light_direction, viewing, normal) * light.attenuation(position) * light.color
+
+            visible_position = ray.p0 + (depth - 0.1) * ray.direction # 衝突点の座標(カメラ側に少しずらす)
+            light_ray = Ray(visible_position, light_direction) # 光源方向へのレイを定義
+            _collision_depth, collision_obj = find_intersect(light_ray, scene) # 光源・衝突点間の衝突判定
+            if collision_obj is None : # Visibility = 1 の場合
+                color += obj.brdf.reflectance(light_direction, viewing, normal) * light.attenuation(position) * light.color
 
         return color
 
@@ -303,7 +308,7 @@ def ray_trace(scene):
             depth, obj = find_intersect(ray, scene)
             ''' 課題４では、find_color に scene を渡すように変更しないと、影の実装はできない。
             '''
-            color = find_color(ray, scene.lights, obj, depth)
+            color = find_color(ray, scene.lights, obj, depth, scene)
             image[v, u] = color
             
     # 結果を保存
