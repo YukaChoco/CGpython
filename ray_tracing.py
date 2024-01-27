@@ -292,19 +292,25 @@ def ray_trace(scene):
     例えば、__main__() において、Scene クラスの dolly_and_pan() を使うと、カメラの位置姿勢が少し変わる。
     '''
     # カメラの設定は、以下のとおりとする。（camera_intrinsic_param を無視して固定値を使用している。課題5では書き換えよ）
-    fov = 40. * np.pi / 180. # ラジアン
-    pixels = 200 # ピクセル数
-    
+    pixels = scene.camera_pixels[0] # ピクセル数
+    f = scene.camera_intrinsic_param[0, 0]
+    fov = 2 * np.arctan( pixels / (2 * f) ) # ラジアン
+
+    ex_param = scene.camera_extrinsic_param
+    translate_param = ex_param[:, 3]
+    rotate_param = ex_param[:3, :3]
+
     # レンダリング開始
     image = np.zeros((pixels, pixels, 3))
     for u in range(pixels):
         for v in range(pixels):
             # 課題5では、fov, u, v, pixels ともに camera_intrinsic_param から求める値を用いよ。
-            ray = ray_casting(u, v, fov, pixels) 
+            default_ray = ray_casting(u, v, fov, pixels)
             ''' 課題5では、ここにコードを追加する必要がある。
             上記 ray はカメラ座標系で表現されているので、カメラの位置姿勢 (camera_extrinsic_param) に応じて世界座標系における表現に変換せよ。
             光線の始点 ray.p0 は平行移動の影響を受け、光線の方向 ray.direction は回転の影響を受ける。
             '''
+            ray = Ray(default_ray.p0 + translate_param, np.dot(rotate_param, default_ray.direction))
             depth, obj = find_intersect(ray, scene)
             ''' 課題４では、find_color に scene を渡すように変更しないと、影の実装はできない。
             '''
@@ -501,7 +507,7 @@ class Scene:
     def __init__(self):
         self.lights = []
         self.objects = []
-        self.camera_pixels = ((200, 200))
+        self.camera_pixels = ((300, 300))
         f = 100. / np.tan(20. * np.pi / 180.)
         self.camera_extrinsic_param = np.array(((1., 0., 0., 0.),
                                                 (0., 1., 0., 0.),
@@ -510,17 +516,16 @@ class Scene:
                                                 (0., f, 100. ),
                                                 (0., 0., 1.  )))
         
-    def dolly_and_pan(self):
-        # x 軸方向へ 10 動かし、y 軸周りに 20度回転する
-        theta = 20. * np.pi / 180.
-        self.camera_extrinsic_param = np.array(((np.cos(theta), 0., 0.-np.sin(theta), 10.),
-                                                (0., 1., 0., 0.),
-                                                (np.sin(theta), 0., np.cos(theta), 0.)))
+    def dolly_and_pan(self, translate, rotate_y):
+        theta = rotate_y * np.pi / 180.
+        self.camera_extrinsic_param = np.array(((np.cos(theta), 0., 0.-np.sin(theta), translate[0]),
+                                                (0., 1., 0., translate[1]),
+                                                (np.sin(theta), 0., np.cos(theta), translate[2])))
         
     def set_defalut_scene(self):
 		# シーンに光源を追加する。
         self.lights.append(ParallelLight(vec_normalize((-1., -1., -2)))) # 平行光源
-        #self.lights.append(PointLight(np.array((0., 0., 0.)), 1000.)) # 点光源
+        self.lights.append(PointLight(np.array((0., 0., 0.)), 1000.)) # 点光源
 		
 		# シーンに物体を追加する。プリミティブと反射モデルを設定する。
         self.objects.append(Sphere((0, 0, 50), 12, Diffuse((1., 0., 0.)))) # 顔全体
@@ -546,5 +551,5 @@ def camera_move_animation():
 if __name__ == '__main__':
     scene = Scene()
     scene.set_defalut_scene()
-    # scene.dolly_and_pan()
+    scene.dolly_and_pan(np.array((0, 0, 0)), 0)
     ray_trace(scene)
